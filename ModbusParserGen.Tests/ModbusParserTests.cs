@@ -6,8 +6,8 @@ namespace ModbusParserGen.Tests
 	public class ModbusParserTests
 	{
 		[Theory]
-		[ClassData(typeof(ModbusParserDeserializeTestDatasets))]
-		public void RoundTrip<T>(RoundTripParameters param, T value, T expected) where T : notnull
+		[ClassData(typeof(ModbusParserRoundTripTestDatasets))]
+		public void RoundTripTest<T>(RoundTripParameters param, T value, T expected) where T : notnull
 		{
 			ModbusParser parser = new ModbusParser(param.WordSwap,param.EndianFunction);
 			var registers = parser.Serialize(value, param.TargetLength, param.ValueEncoding, param.Signed, param.ScaleFactor);
@@ -34,11 +34,11 @@ namespace ModbusParserGen.Tests
 		
 	}
 
-	public class ModbusParserDeserializeTestDatasets : IEnumerable<object[]>
+	public class ModbusParserRoundTripTestDatasets : IEnumerable<object[]>
 	{
 		public IEnumerator<object[]> GetEnumerator()
 		{ 
-			foreach (var param in RoundTripParameters)
+			foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //Utf 8 string normal
                     new RoundTripParameters()
@@ -54,7 +54,7 @@ namespace ModbusParserGen.Tests
 					(string)"Hello World!"
                 ];
 
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //Utf 8 string longer than target length
                     new RoundTripParameters()
@@ -69,7 +69,7 @@ namespace ModbusParserGen.Tests
                     (string)"Hello World!",
                     (string)"Hello Worl"
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //Utf 8 string shorter than target length
                     new RoundTripParameters()
@@ -84,7 +84,7 @@ namespace ModbusParserGen.Tests
                     (string)"Hello World!!",
                     (string)"Hello World!!"
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //Utf 8 string with multiple byte chars
                     new RoundTripParameters()
@@ -99,7 +99,7 @@ namespace ModbusParserGen.Tests
                     (string)"Hello World!\u2502",
                     (string)"Hello World!\u2502"
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //Utf 16 string normal
                     new RoundTripParameters()
@@ -114,7 +114,7 @@ namespace ModbusParserGen.Tests
                     (string)"Hello World!",
                     (string)"Hello World!"
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //Utf 16 string longer than target length
                     new RoundTripParameters()
@@ -129,7 +129,7 @@ namespace ModbusParserGen.Tests
                     (string)"Hello World!",
                     (string)"Hello World"
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //Utf 16 string shorter than target length
                     new RoundTripParameters()
@@ -144,7 +144,7 @@ namespace ModbusParserGen.Tests
                     (string)"Hello World!",
                     (string)"Hello World!"
                 ]; 
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //IEEE754 32 bit negative value
                     new RoundTripParameters()
@@ -159,7 +159,7 @@ namespace ModbusParserGen.Tests
                     (float)-3.4E-38,
                     (float)-3.4E-38
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //IEEE754 32 bit positive value
                     new RoundTripParameters()
@@ -174,7 +174,7 @@ namespace ModbusParserGen.Tests
                     (float)+3.4E38,
                     (float)+3.4E38
                 ]; 
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //IEEE754 32 bit infinity value
                     new RoundTripParameters()
@@ -186,10 +186,10 @@ namespace ModbusParserGen.Tests
                         Signed = param.Signed,
                         WordSwap = param.WordSwap
                     },
-                    (float)Single.PositiveInfinity,
-                    (float)Single.PositiveInfinity
+                    Single.PositiveInfinity,
+                    Single.PositiveInfinity
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //IEEE754 64 bit negative smallest value
                     new RoundTripParameters()
@@ -201,10 +201,10 @@ namespace ModbusParserGen.Tests
                         Signed = param.Signed,
                         WordSwap = param.WordSwap
                     },
-                    (double)-1.7E-308,
-                    (double)-1.7E-308
+                    -1.7E-308,
+                    -1.7E-308
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //IEEE754 64 bit positive biggest value
                     new RoundTripParameters()
@@ -216,10 +216,10 @@ namespace ModbusParserGen.Tests
                         Signed = param.Signed,
                         WordSwap = param.WordSwap
                     },
-                    (double)1.7E+308,
-                    (double)1.7E+308
+                    1.7E+308,
+                    1.7E+308
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ //IEEE754 64 bit infinity value
                     new RoundTripParameters()
@@ -231,10 +231,10 @@ namespace ModbusParserGen.Tests
                         Signed = param.Signed,
                         WordSwap = param.WordSwap
                     },
-                    (double)Double.PositiveInfinity,
-                    (double)Double.PositiveInfinity
+                    Double.PositiveInfinity,
+                    Double.PositiveInfinity
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int specifying longer target length than needed
                     new RoundTripParameters()
@@ -249,7 +249,7 @@ namespace ModbusParserGen.Tests
                     (ushort)500,
                     (ushort)500
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int bool normal
 					new RoundTripParameters()
@@ -261,10 +261,10 @@ namespace ModbusParserGen.Tests
 						Signed = param.Signed,
 						WordSwap = param.WordSwap
 					},
-					(bool)true,
-					(bool)true
+					true,
+					true
 				];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Byte high value
                     new RoundTripParameters()
@@ -279,7 +279,7 @@ namespace ModbusParserGen.Tests
                     (byte)250,
                     (byte)250
                 ]; 
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int SByte negative
                     new RoundTripParameters()
@@ -294,7 +294,7 @@ namespace ModbusParserGen.Tests
                     (sbyte)-100,
                     (sbyte)-100
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Ushort high value
                     new RoundTripParameters()
@@ -309,7 +309,7 @@ namespace ModbusParserGen.Tests
                     (ushort)60000,
                     (ushort)60000
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Short negative
                     new RoundTripParameters()
@@ -324,7 +324,7 @@ namespace ModbusParserGen.Tests
                     (short)-500,
                     (short)-500
                 ]; 
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Double
                     new RoundTripParameters()
@@ -339,7 +339,7 @@ namespace ModbusParserGen.Tests
                     (double)60000,
                     (double)60000
                 ]; 
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Double negative
                     new RoundTripParameters()
@@ -354,7 +354,7 @@ namespace ModbusParserGen.Tests
                     (double)-5000,
                     (double)-5000
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Unt32 with length of Uint64
                     new RoundTripParameters()
@@ -369,7 +369,7 @@ namespace ModbusParserGen.Tests
                     UInt32.MaxValue,
                     UInt32.MaxValue
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Unt128 high value
                     new RoundTripParameters()
@@ -381,10 +381,10 @@ namespace ModbusParserGen.Tests
                         Signed = false,
                         WordSwap = param.WordSwap
                     },
-                    (UInt128)UInt128.MaxValue,
-                    (UInt128)UInt128.MaxValue
+                    UInt128.MaxValue,
+                    UInt128.MaxValue
                 ]; 
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Int128 normal
                     new RoundTripParameters()
@@ -396,10 +396,10 @@ namespace ModbusParserGen.Tests
                         Signed = true,
                         WordSwap = param.WordSwap
                     },
-                    (Int128)Int128.MinValue,
-                    (Int128)Int128.MinValue
+                    Int128.MinValue,
+                    Int128.MinValue
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding Int Int128 normal
                     new RoundTripParameters()
@@ -411,9 +411,9 @@ namespace ModbusParserGen.Tests
                         Signed = true,
                         WordSwap = param.WordSwap
                     },
-                    (Int128)Int128.MinValue,
-                    (Int128)Int128.MinValue
-                ]; foreach (var param in RoundTripParameters)
+                    Int128.MinValue,
+                    Int128.MinValue
+                ]; foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding IntAndScaleFactor double
                     new RoundTripParameters()
@@ -425,10 +425,10 @@ namespace ModbusParserGen.Tests
                         Signed = true,
                         WordSwap = param.WordSwap
                     },
-                    (double)5.88,
-                    (double)5.88
+                    5.88,
+                    5.88
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding IntAndScaleFactor double
                     new RoundTripParameters()
@@ -440,10 +440,10 @@ namespace ModbusParserGen.Tests
                         Signed = true,
                         WordSwap = param.WordSwap
                     },
-                    (double)-5.88,
-                    (double)-5.88
+                    -5.88,
+                    -5.88
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding IntAndScaleFactor ushort high value
                     new RoundTripParameters()
@@ -458,7 +458,7 @@ namespace ModbusParserGen.Tests
                     UInt16.MaxValue,
                     UInt16.MaxValue
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding IntAndScaleFactor ushort small value only one register
                     new RoundTripParameters()
@@ -473,7 +473,7 @@ namespace ModbusParserGen.Tests
                     (ushort)50,
                     (ushort)50
                 ];
-            foreach (var param in RoundTripParameters)
+            foreach (var param in RoundTripParameterVariations)
                 yield return
                 [ // Encoding IntAndScaleFactor short negative value
                     new RoundTripParameters()
@@ -495,7 +495,7 @@ namespace ModbusParserGen.Tests
 			return GetEnumerator();
 		}
 
-		public List<RoundTripParameters> RoundTripParameters = new List<RoundTripParameters>()
+		public List<RoundTripParameters> RoundTripParameterVariations = new List<RoundTripParameters>()
 		{
 			new(){EndianFunction = Endian.LittleEndian, WordSwap = false, Signed = false},
 			new(){EndianFunction = Endian.LittleEndian, WordSwap = true, Signed = false},
