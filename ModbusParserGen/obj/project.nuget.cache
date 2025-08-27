@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "s4BgNSkQ8ek=",
+  "dgSpecHash": "o9cedlvnX3Q=",
   "success": true,
-  "projectFilePath": "C:\\Users\\bioba\\Source\\Repos\\DA-2025-PV-Prognose Zur Vorbeugung von Überproduktion\\PhotovoltaicForecastCharging\\Modbus.ParserGen\\Modbus.ParserGen.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\bioba\\source\\repos\\ModbusParserGen\\ModbusParserGen\\ModbusParserGen.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\bioba\\.nuget\\packages\\nmodbus\\3.0.81\\nmodbus.3.0.81.nupkg.sha512"
+  ],
   "logs": []
 }

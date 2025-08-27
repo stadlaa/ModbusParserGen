@@ -1,4 +1,4 @@
-﻿namespace SharpSunSpec.Modbus.Functions;
+﻿namespace ModbusParserGen.Functions;
 
 /// <summary>
 ///     Functions to convert source endian to target endian.
@@ -8,7 +8,7 @@ public static class Endian
 	/// <summary>
 	///     Convert big source endian to target endian.
 	/// </summary>
-	public static Func<byte[], byte[]> FromBigEndian = bytes =>
+	public static Func<byte[], byte[]> BigEndian = bytes =>
 	{
 		if (BitConverter.IsLittleEndian)
 			return bytes.Reverse().ToArray();
@@ -18,7 +18,7 @@ public static class Endian
 	/// <summary>
 	///     Convert little source endian to target endian.
 	/// </summary>
-	public static Func<byte[], byte[]> FromLittleEndian = bytes =>
+	public static Func<byte[], byte[]> LittleEndian = bytes =>
 	{
 		if (!BitConverter.IsLittleEndian)
 			return bytes.Reverse().ToArray();

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Modbus.ParserGen")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2292ee88de4bb84f138e624a1c84b2cc81bded54")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+16f7a37f1d38e59d165be3e489dea4bd0258a23f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Modbus.ParserGen")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Modbus.ParserGen")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

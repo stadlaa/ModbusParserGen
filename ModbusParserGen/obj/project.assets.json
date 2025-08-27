@@ -1,11 +1,49 @@
 {
   "version": 3,
   "targets": {
-    "net9.0": {}
+    "net9.0": {
+      "NModbus/3.0.81": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/NModbus.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/NModbus.dll": {
+            "related": ".xml"
+          }
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "NModbus/3.0.81": {
+      "sha512": "EzKEp7CHD8ErBL36iMts+6IrZZ9FEqllaD7Y5XzhoRjlxt5yXRughQ1bxPs99QFYFkW5xfkANB0Qs1gAmYGP8Q==",
+      "type": "package",
+      "path": "nmodbus/3.0.81",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.txt",
+        "README.md",
+        "lib/net46/NModbus.dll",
+        "lib/net46/NModbus.xml",
+        "lib/net6.0/NModbus.dll",
+        "lib/net6.0/NModbus.xml",
+        "lib/netstandard1.3/NModbus.dll",
+        "lib/netstandard1.3/NModbus.xml",
+        "lib/netstandard2.0/NModbus.dll",
+        "lib/netstandard2.0/NModbus.xml",
+        "nmodbus.3.0.81.nupkg.sha512",
+        "nmodbus.nuspec"
+      ]
+    }
+  },
   "projectFileDependencyGroups": {
-    "net9.0": []
+    "net9.0": [
+      "NModbus >= 3.0.81"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\bioba\\.nuget\\packages\\": {},
@@ -14,11 +52,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\bioba\\Source\\Repos\\DA-2025-PV-Prognose Zur Vorbeugung von Überproduktion\\PhotovoltaicForecastCharging\\Modbus.ParserGen\\Modbus.ParserGen.csproj",
-      "projectName": "Modbus.ParserGen",
-      "projectPath": "C:\\Users\\bioba\\Source\\Repos\\DA-2025-PV-Prognose Zur Vorbeugung von Überproduktion\\PhotovoltaicForecastCharging\\Modbus.ParserGen\\Modbus.ParserGen.csproj",
+      "projectUniqueName": "C:\\Users\\bioba\\source\\repos\\ModbusParserGen\\ModbusParserGen\\ModbusParserGen.csproj",
+      "projectName": "ModbusParserGen",
+      "projectPath": "C:\\Users\\bioba\\source\\repos\\ModbusParserGen\\ModbusParserGen\\ModbusParserGen.csproj",
       "packagesPath": "C:\\Users\\bioba\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\bioba\\Source\\Repos\\DA-2025-PV-Prognose Zur Vorbeugung von Überproduktion\\PhotovoltaicForecastCharging\\Modbus.ParserGen\\obj\\",
+      "outputPath": "C:\\Users\\bioba\\source\\repos\\ModbusParserGen\\ModbusParserGen\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -57,6 +95,12 @@
     "frameworks": {
       "net9.0": {
         "targetAlias": "net9.0",
+        "dependencies": {
+          "NModbus": {
+            "target": "Package",
+            "version": "[3.0.81, )"
+          }
+        },
         "imports": [
           "net461",
           "net462",

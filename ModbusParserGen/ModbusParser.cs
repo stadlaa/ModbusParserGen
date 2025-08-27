@@ -1,16 +1,14 @@
-﻿using System.Buffers.Binary;
-using SharpSunSpec.Modbus.Functions;
+﻿using ModbusParserGen.Functions;
+using System.Runtime.InteropServices;
 
-namespace SharpSunSpec.Modbus;
+namespace ModbusParserGen;
 
 /// <summary>
 ///     Class to parse Modbus register data into various types.
 /// </summary>
-/// <param name="endianConverter">
-///     Endian converter suitable for endian of data source. (Recommended to use function of:
-///     <see cref="WordEndian" />.)
-/// </param>
-public class ModbusParser(Func<ushort[], byte[]> endianConverter)
+/// <param name="wordSwap">Apply word swap on incoming data before endian conversion.</param>
+/// <param name="endian">Specify the endian of the incoming (word-swapped) data by injecting a function from <see cref="Endian"/>. The endian will be reversed if it differs from the target endian.</param>
+public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 {
 	/// <summary>
 	///     Deserializes a modbus register array into the specified type <typeparamref name="T" /> using the specified
@@ -23,30 +21,47 @@ public class ModbusParser(Func<ushort[], byte[]> endianConverter)
 	/// <param name="scaleFactor">Scale factor to be applied.</param>
 	/// <returns>Decoded value.</returns>
 	/// <exception cref="NotSupportedException">An input param combination or the output type is not supported.</exception>
-	public T Deserialize<T>(ushort[] registers, Encoding valueEncoding, bool signed, double? scaleFactor = null)
+	public T Deserialize<T>(ushort[] registers, Encoding valueEncoding, bool signed, double? scaleFactor = null) where T : notnull
 	{
-		//Bring to target endian.
-		byte[] bytes = endianConverter(registers);
+		// Apply word swap
+		if (wordSwap)
+			Array.Reverse(registers);
+
+		//Copy to byte array
+		var bytes = MemoryMarshal.Cast<ushort, byte>(registers).ToArray();
+
+		//Convert from source endian.
+		bytes = endian(bytes);
 
 		// Decode based on valueEncoding and convert to the requested target type, if it is supported for the given valueEncoding.
 		// If the target type is not specified for the given valueEncoding, a NotSupportedException is thrown after the switch statement.
 		switch (valueEncoding)
 		{
 			case Encoding.UTF8:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+
 				if (typeof(T) == typeof(string))
-					return (T)(object)System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0', ' ');
+					return (T)(object)System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0');
 				break;
+			}
 			case Encoding.UTF16:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+
 				if (typeof(T) == typeof(string))
-					return (T)(object)System.Text.Encoding.Unicode.GetString(bytes).TrimEnd('\0', ' ');
+					return (T)(object)System.Text.Encoding.Unicode.GetString(bytes).TrimEnd('\0');
 				break;
+			}
 			case Encoding.IEEE754:
 			{
 				object value = bytes.Length switch
 				{
-					4 => BinaryPrimitives.ReadSingleBigEndian(bytes),
-					8 => BinaryPrimitives.ReadDoubleBigEndian(bytes),
-					_ => throw new NotSupportedException($"Length of {bytes.Length} bytes is not supported for {valueEncoding} valueEncoding.")
+					4 => MemoryMarshal.Read<float>(bytes),
+					8 => MemoryMarshal.Read<double>(bytes),
+					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {valueEncoding} valueEncoding.")
 				};
 				if (typeof(T) == typeof(double))
 					return (T)(object)Convert.ToDouble(value);
@@ -56,26 +71,19 @@ public class ModbusParser(Func<ushort[], byte[]> endianConverter)
 			}
 			case Encoding.IntAndScaleFactor:
 			{
+				if (scaleFactor is null)
+					throw new ArgumentNullException($"No scale factor provided for encoding {valueEncoding}");
+
 				object value = bytes.Length switch
 				{
-					2 when signed => BinaryPrimitives.ReadInt16BigEndian(bytes) * (scaleFactor ?? 1),
-					2 when !signed => BinaryPrimitives.ReadUInt16BigEndian(bytes) * (scaleFactor ?? 1),
-					4 when signed => BinaryPrimitives.ReadInt32BigEndian(bytes) * (scaleFactor ?? 1),
-					4 when !signed => BinaryPrimitives.ReadUInt32BigEndian(bytes) * (scaleFactor ?? 1),
-					8 when signed => BinaryPrimitives.ReadInt64BigEndian(bytes) * (scaleFactor ?? 1),
-					8 when !signed => BinaryPrimitives.ReadUInt64BigEndian(bytes) * (scaleFactor ?? 1),
-					// ReSharper disable once CompareOfFloatsByEqualityOperator
-					16 when scaleFactor != null => throw new NotSupportedException("Scale factor for 128 bit integers is not supported."),
-					16 when signed => BinaryPrimitives.ReadInt128BigEndian(bytes),
-					16 when !signed => BinaryPrimitives.ReadUInt128BigEndian(bytes),
-					_ => throw new NotSupportedException($"Length of {bytes.Length} bytes is not supported for {valueEncoding} valueEncoding.")
+					2 when signed => MemoryMarshal.Read<short>(bytes) * (double)scaleFactor,
+					2 when !signed => MemoryMarshal.Read<ushort>(bytes) * (double)scaleFactor,
+					4 when signed => MemoryMarshal.Read<int>(bytes) * (double)scaleFactor,
+					4 when !signed => MemoryMarshal.Read<uint>(bytes) * (double)scaleFactor,
+					8 when signed => MemoryMarshal.Read<long>(bytes) * (double)scaleFactor,
+					8 when !signed => MemoryMarshal.Read<ulong>(bytes) * (double)scaleFactor,
+					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {valueEncoding} valueEncoding.")
 				};
-				if (typeof(T) == typeof(bool))
-					return (T)(object)Convert.ToBoolean(Math.Round((double)value, 0));
-				if (typeof(T) == typeof(byte))
-					return (T)(object)Convert.ToByte(Math.Round((double)value, 0));
-				if (typeof(T) == typeof(sbyte))
-					return (T)(object)Convert.ToSByte(Math.Round((double)value, 0));
 				if (typeof(T) == typeof(double))
 					return (T)(object)Convert.ToDouble(value);
 				if (typeof(T) == typeof(float))
@@ -94,28 +102,205 @@ public class ModbusParser(Func<ushort[], byte[]> endianConverter)
 					return (T)(object)Convert.ToUInt64(Math.Round((double)value, 0));
 				break;
 			}
+			case Encoding.Int:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+
+				object value = bytes.Length switch
+				{
+					2 when signed => MemoryMarshal.Read<short>(bytes),
+					2 when !signed => MemoryMarshal.Read<ushort>(bytes),
+					4 when signed => MemoryMarshal.Read<int>(bytes),
+					4 when !signed => MemoryMarshal.Read<uint>(bytes),
+					8 when signed => MemoryMarshal.Read<long>(bytes),
+					8 when !signed => MemoryMarshal.Read<ulong>(bytes),
+					16 when signed => MemoryMarshal.Read<Int128>(bytes),
+					16 when !signed => MemoryMarshal.Read<UInt128>(bytes),
+					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {valueEncoding} valueEncoding.")
+				};
+				if (typeof(T) == typeof(bool))
+					return (T)(object)Convert.ToBoolean(value);
+				if (typeof(T) == typeof(byte))
+					return (T)(object)Convert.ToByte(value);
+				if (typeof(T) == typeof(sbyte))
+					return (T)(object)Convert.ToSByte(value);
+				if (typeof(T) == typeof(double))
+					return (T)(object)Convert.ToDouble(value);
+				if (typeof(T) == typeof(float))
+					return (T)(object)Convert.ToSingle(value);
+				if (typeof(T) == typeof(short))
+					return (T)(object)Convert.ToInt16(value);
+				if (typeof(T) == typeof(ushort))
+					return (T)(object)Convert.ToUInt16(value);
+				if (typeof(T) == typeof(int))
+					return (T)(object)Convert.ToInt32(value);
+				if (typeof(T) == typeof(uint))
+					return (T)(object)Convert.ToUInt32(value);
+				if (typeof(T) == typeof(long))
+					return (T)(object)Convert.ToInt64(value);
+				if (typeof(T) == typeof(ulong))
+					return (T)(object)Convert.ToUInt64(value);
+				if (typeof(T) == typeof(Int128))
+					return (T)value;
+				if (typeof(T) == typeof(UInt128))
+					return (T)value;
+				break;
+			}
 			default:
 				throw new NotSupportedException($"Encoding {valueEncoding} is not supported.");
 		}
-
 		// If we reach this point, the type was not supported for the given valueEncoding
 		throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
 	}
-}
 
-/// <summary>
-///     Specifies a certain encoding of datapoint.
-/// </summary>
-public enum Encoding
-{
-	IntAndScaleFactor,
+    /// <summary>
+    ///     Serializes a specified type <typeparamref name="T" /> into a modbus register array using the specified
+    ///     encoding.
+    /// </summary>
+    /// <typeparam name="T">Given input type.</typeparam>
+    /// <param name="value">Given input value</param>
+    /// <param name="targetLength">Length of data in target registers</param>
+    /// <param name="valueEncoding">What encoding should be used to serialize the value?</param>
+    /// <param name="signed">Should the value be interpreted as signed?</param>
+    /// <param name="scaleFactor">Scale factor to be applied.</param>
+    /// <returns>Serialized registers.</returns>
+    /// <exception cref="NotSupportedException">An input param combination is not supported.</exception>
+    public ushort[] Serialize<T>(T value, int targetLength, Encoding valueEncoding, bool signed, double? scaleFactor = null) where T : notnull
+	{
+		byte[] bytes = new byte[targetLength*2];
 
-	// ReSharper disable once InconsistentNaming
-	IEEE754,
+		// Encode based on valueEncoding, to register targetLength if it is supported for the given valueEncoding.
+		switch (valueEncoding)
+		{
+			case Encoding.UTF8:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
 
-	// ReSharper disable once InconsistentNaming
-	UTF8,
+				if (!(typeof(T) == typeof(string)))
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
 
-	// ReSharper disable once InconsistentNaming
-	UTF16
+				byte[] strBytes = System.Text.Encoding.UTF8.GetBytes((string)(object)value);
+				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes); 
+				break;
+			}
+			case Encoding.UTF16:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+
+				if (!(typeof(T) == typeof(string)))
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+
+				byte[] strBytes = System.Text.Encoding.Unicode.GetBytes((string)(object)value);
+				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes);
+				break;
+			}
+			case Encoding.IEEE754:
+			{
+				if (!(typeof(T) == typeof(double) || typeof(T) == typeof(float)))
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+
+				switch (bytes.Length)
+				{
+					case 4: 
+                        MemoryMarshal.Write(bytes, Convert.ToSingle(value));
+                        break;
+					case 8:
+						MemoryMarshal.Write(bytes, Convert.ToDouble(value)); 
+                        break;
+                    default:
+                        throw new NotSupportedException($"Length of {targetLength} words is not supported for valueEncoding {valueEncoding}.");
+                    }
+				break;
+			}
+			case Encoding.IntAndScaleFactor:
+			{
+				if (scaleFactor is null)
+					throw new ArgumentNullException($"No scale factor provided for encoding {valueEncoding}");
+
+				if (!(typeof(T) == typeof(double) || typeof(T) == typeof(float) || typeof(T) == typeof(short) | typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(long) || typeof(T) == typeof(ulong)))
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+
+				switch (bytes.Length)
+				{
+					case 2 when signed:
+						MemoryMarshal.Write(bytes, Convert.ToInt16(Math.Round(Convert.ToDouble(value)/ (double)scaleFactor, 0)));
+                        break;
+					case 2 when !signed: 
+                        MemoryMarshal.Write(bytes, Convert.ToUInt16(Math.Round(Convert.ToDouble(value) / (double)scaleFactor, 0)));
+                        break;
+					case 4 when signed : 
+							MemoryMarshal.Write(bytes,Convert.ToInt32(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+						break;
+					case 4 when !signed: 
+							MemoryMarshal.Write(bytes,Convert.ToUInt32(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+						break;
+					case 8 when signed : 
+							MemoryMarshal.Write(bytes,Convert.ToInt64(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+						break;
+					case 8 when !signed : 
+							MemoryMarshal.Write(bytes,Convert.ToUInt64(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+						break;
+                    default:
+                        throw new NotSupportedException($"Length of {targetLength} words is not supported for valueEncoding {valueEncoding}.");
+				}
+				break;
+            }
+            case Encoding.Int:
+            {
+                if (scaleFactor != null)
+                    throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+
+                if (!(typeof(T) == typeof(bool) || typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte) || typeof(T) == typeof(double) || typeof(T) == typeof(float) || typeof(T) == typeof(short) | typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(long) || typeof(T) == typeof(ulong) || typeof(T) == typeof(Int128) || typeof(T) == typeof(UInt128)))
+	                throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+
+				switch (bytes.Length)
+				{
+                case 2 when signed:
+                    MemoryMarshal.Write(bytes, Convert.ToInt16(value));
+                    break;
+                case 2 when !signed:
+                    MemoryMarshal.Write(bytes, Convert.ToUInt16(value));
+                    break;
+                case 4 when signed:
+                    MemoryMarshal.Write(bytes, Convert.ToInt32(value));
+                    break;
+                case 4 when !signed:
+                    MemoryMarshal.Write(bytes, Convert.ToUInt32(value));
+                    break;
+                case 8 when signed:
+                    MemoryMarshal.Write(bytes, Convert.ToInt64(value));
+                    break;
+                case 8 when !signed:
+                    MemoryMarshal.Write(bytes, Convert.ToUInt64(value));
+                    break;
+                case 16 when signed:
+                    MemoryMarshal.Write(bytes, (Int128)(object)value);
+                    break;
+                case 16 when !signed:
+                    MemoryMarshal.Write(bytes, (UInt128)(object)value);
+                    break; 
+                default:
+                    throw new NotSupportedException($"Length of {targetLength} words is not supported for valueEncoding {valueEncoding}.");
+                }
+	            break;
+            }
+            default:
+				throw new NotSupportedException($"Encoding {valueEncoding} is not supported.");
+        }
+
+		//Convert from source endian.
+		bytes = endian(bytes);
+
+		//Copy to register array
+		var registers = MemoryMarshal.Cast<byte, ushort>(bytes).ToArray();
+
+		// Apply word swap
+		if (wordSwap)
+			Array.Reverse(registers);
+
+		return registers;
+    }
 }
