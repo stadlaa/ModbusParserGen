@@ -3,7 +3,7 @@
 /// <summary>
 ///     Specifies a certain encoding of datapoint.
 /// </summary>
-public enum Encoding
+public enum ModbusEncoding
 {
 	IntAndScaleFactor,
 

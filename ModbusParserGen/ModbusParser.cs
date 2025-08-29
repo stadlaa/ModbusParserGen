@@ -16,12 +16,12 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 	/// </summary>
 	/// <typeparam name="T">Requested output type.</typeparam>
 	/// <param name="registers">Input data in 16bit words.</param>
-	/// <param name="valueEncoding">What encoding should be used to interpret the value?</param>
+	/// <param name="modbusEncoding">What encoding should be used to interpret the value?</param>
 	/// <param name="signed">Should the value be decoded as signed?</param>
 	/// <param name="scaleFactor">Scale factor to be applied.</param>
 	/// <returns>Decoded value.</returns>
 	/// <exception cref="NotSupportedException">An input param combination or the output type is not supported.</exception>
-	public T Deserialize<T>(ushort[] registers, Encoding valueEncoding, bool signed, double? scaleFactor = null) where T : notnull
+	public T Deserialize<T>(ushort[] registers, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null) where T : notnull
 	{
 		// Apply word swap
 		if (wordSwap)
@@ -33,35 +33,35 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 		//Convert from source endian.
 		bytes = endian(bytes);
 
-		// Decode based on valueEncoding and convert to the requested target type, if it is supported for the given valueEncoding.
-		// If the target type is not specified for the given valueEncoding, a NotSupportedException is thrown after the switch statement.
-		switch (valueEncoding)
+		// Decode based on modbusEncoding and convert to the requested target type, if it is supported for the given modbusEncoding.
+		// If the target type is not specified for the given modbusEncoding, a NotSupportedException is thrown after the switch statement.
+		switch (modbusEncoding)
 		{
-			case Encoding.UTF8:
+			case ModbusEncoding.UTF8:
 			{
 				if (scaleFactor != null)
-					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (typeof(T) == typeof(string))
 					return (T)(object)System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0');
 				break;
 			}
-			case Encoding.UTF16:
+			case ModbusEncoding.UTF16:
 			{
 				if (scaleFactor != null)
-					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (typeof(T) == typeof(string))
 					return (T)(object)System.Text.Encoding.Unicode.GetString(bytes).TrimEnd('\0');
 				break;
 			}
-			case Encoding.IEEE754:
+			case ModbusEncoding.IEEE754:
 			{
 				object value = bytes.Length switch
 				{
 					4 => MemoryMarshal.Read<float>(bytes),
 					8 => MemoryMarshal.Read<double>(bytes),
-					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {valueEncoding} valueEncoding.")
+					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {modbusEncoding} encoding.")
 				};
 				if (typeof(T) == typeof(double))
 					return (T)(object)Convert.ToDouble(value);
@@ -69,10 +69,10 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					return (T)(object)Convert.ToSingle(value);
 				break;
 			}
-			case Encoding.IntAndScaleFactor:
+			case ModbusEncoding.IntAndScaleFactor:
 			{
 				if (scaleFactor is null)
-					throw new ArgumentNullException($"No scale factor provided for encoding {valueEncoding}");
+					throw new ArgumentNullException($"No scale factor provided for encoding {modbusEncoding}");
 
 				object value = bytes.Length switch
 				{
@@ -82,7 +82,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					4 when !signed => MemoryMarshal.Read<uint>(bytes) * (double)scaleFactor,
 					8 when signed => MemoryMarshal.Read<long>(bytes) * (double)scaleFactor,
 					8 when !signed => MemoryMarshal.Read<ulong>(bytes) * (double)scaleFactor,
-					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {valueEncoding} valueEncoding.")
+					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {modbusEncoding} encoding.")
 				};
 				if (typeof(T) == typeof(double))
 					return (T)(object)Convert.ToDouble(value);
@@ -102,10 +102,10 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					return (T)(object)Convert.ToUInt64(Math.Round((double)value, 0));
 				break;
 			}
-			case Encoding.Int:
+			case ModbusEncoding.Int:
 			{
 				if (scaleFactor != null)
-					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				object value = bytes.Length switch
 				{
@@ -117,7 +117,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					8 when !signed => MemoryMarshal.Read<ulong>(bytes),
 					16 when signed => MemoryMarshal.Read<Int128>(bytes),
 					16 when !signed => MemoryMarshal.Read<UInt128>(bytes),
-					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {valueEncoding} valueEncoding.")
+					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {modbusEncoding} encoding.")
 				};
 				if (typeof(T) == typeof(bool))
 					return (T)(object)Convert.ToBoolean(value);
@@ -148,10 +148,10 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				break;
 			}
 			default:
-				throw new NotSupportedException($"Encoding {valueEncoding} is not supported.");
+				throw new NotSupportedException($"Encoding {modbusEncoding} is not supported.");
 		}
-		// If we reach this point, the type was not supported for the given valueEncoding
-		throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+		// If we reach this point, the type was not supported for the given modbusEncoding
+		throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 	}
 
     /// <summary>
@@ -161,46 +161,46 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
     /// <typeparam name="T">Given input type.</typeparam>
     /// <param name="value">Given input value</param>
     /// <param name="targetLength">Length of data in target registers</param>
-    /// <param name="valueEncoding">What encoding should be used to serialize the value?</param>
+    /// <param name="modbusEncoding">What encoding should be used to serialize the value?</param>
     /// <param name="signed">Should the value be interpreted as signed?</param>
     /// <param name="scaleFactor">Scale factor to be applied.</param>
     /// <returns>Serialized registers.</returns>
     /// <exception cref="NotSupportedException">An input param combination is not supported.</exception>
-    public ushort[] Serialize<T>(T value, int targetLength, Encoding valueEncoding, bool signed, double? scaleFactor = null) where T : notnull
+    public ushort[] Serialize<T>(T value, int targetLength, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null) where T : notnull
 	{
 		byte[] bytes = new byte[targetLength*2];
 
-		// Encode based on valueEncoding, to register targetLength if it is supported for the given valueEncoding.
-		switch (valueEncoding)
+		// Encode based on modbusEncoding, to register targetLength if it is supported for the given modbusEncoding.
+		switch (modbusEncoding)
 		{
-			case Encoding.UTF8:
+			case ModbusEncoding.UTF8:
 			{
 				if (scaleFactor != null)
-					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (!(typeof(T) == typeof(string)))
-					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
 				byte[] strBytes = System.Text.Encoding.UTF8.GetBytes((string)(object)value);
 				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes); 
 				break;
 			}
-			case Encoding.UTF16:
+			case ModbusEncoding.UTF16:
 			{
 				if (scaleFactor != null)
-					throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (!(typeof(T) == typeof(string)))
-					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
 				byte[] strBytes = System.Text.Encoding.Unicode.GetBytes((string)(object)value);
 				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes);
 				break;
 			}
-			case Encoding.IEEE754:
+			case ModbusEncoding.IEEE754:
 			{
 				if (!(typeof(T) == typeof(double) || typeof(T) == typeof(float)))
-					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
 				switch (bytes.Length)
 				{
@@ -211,17 +211,17 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 						MemoryMarshal.Write(bytes, Convert.ToDouble(value)); 
                         break;
                     default:
-                        throw new NotSupportedException($"Length of {targetLength} words is not supported for valueEncoding {valueEncoding}.");
+                        throw new NotSupportedException($"Length of {targetLength} words is not supported for modbusEncoding {modbusEncoding}.");
                     }
 				break;
 			}
-			case Encoding.IntAndScaleFactor:
+			case ModbusEncoding.IntAndScaleFactor:
 			{
 				if (scaleFactor is null)
-					throw new ArgumentNullException($"No scale factor provided for encoding {valueEncoding}");
+					throw new ArgumentNullException($"No scale factor provided for encoding {modbusEncoding}");
 
 				if (!(typeof(T) == typeof(double) || typeof(T) == typeof(float) || typeof(T) == typeof(short) | typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(long) || typeof(T) == typeof(ulong)))
-					throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
 				switch (bytes.Length)
 				{
@@ -244,17 +244,17 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 							MemoryMarshal.Write(bytes,Convert.ToUInt64(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
 						break;
                     default:
-                        throw new NotSupportedException($"Length of {targetLength} words is not supported for valueEncoding {valueEncoding}.");
+                        throw new NotSupportedException($"Length of {targetLength} words is not supported for encoding {modbusEncoding}.");
 				}
 				break;
             }
-            case Encoding.Int:
+            case ModbusEncoding.Int:
             {
                 if (scaleFactor != null)
-                    throw new NotSupportedException($"No scale factor supported for encoding {valueEncoding}");
+                    throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
                 if (!(typeof(T) == typeof(bool) || typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte) || typeof(T) == typeof(double) || typeof(T) == typeof(float) || typeof(T) == typeof(short) | typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(long) || typeof(T) == typeof(ulong) || typeof(T) == typeof(Int128) || typeof(T) == typeof(UInt128)))
-	                throw new NotSupportedException($"Type {typeof(T)} is not supported for valueEncoding {valueEncoding}.");
+	                throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
 				switch (bytes.Length)
 				{
@@ -283,12 +283,12 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
                     MemoryMarshal.Write(bytes, (UInt128)(object)value);
                     break; 
                 default:
-                    throw new NotSupportedException($"Length of {targetLength} words is not supported for valueEncoding {valueEncoding}.");
+                    throw new NotSupportedException($"Length of {targetLength} words is not supported for encoding {modbusEncoding}.");
                 }
 	            break;
             }
             default:
-				throw new NotSupportedException($"Encoding {valueEncoding} is not supported.");
+				throw new NotSupportedException($"Encoding {modbusEncoding} is not supported.");
         }
 
 		//Convert from source endian.
