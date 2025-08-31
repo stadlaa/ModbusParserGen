@@ -1,5 +1,7 @@
 ﻿using System.Collections;
+using System.Net;
 using ModbusParserGen.Functions;
+using System.Linq;
 
 namespace ModbusParserGen.Tests
 {
@@ -14,20 +16,23 @@ namespace ModbusParserGen.Tests
 			var result = parser.Deserialize<T>(registers, param.ValueEncoding, param.Signed, param.ScaleFactor);
 
 			if (typeof(T) == typeof(double))
-			{
                 if (Double.IsInfinity((double)(object)value))
                     Assert.True(Double.IsInfinity((double)(object)result), $"{result} != {expected}");
                 else
                     Assert.True(Math.Abs((double)(object)result-(double)(object)expected) < 0.00001,$"{result} != {expected}");
-			}
+			
 
 			if (typeof(T) == typeof(float))
-			{
                 if(Single.IsInfinity((float)(object)value))
                     Assert.True(Single.IsInfinity((float)(object)result), $"{result} != {expected}");
                 else
                     Assert.True(Math.Abs((float)(object)result - (float)(object)expected) < 0.00001, $"{result} != {expected}");
-			}
+			
+            if(typeof(T)==typeof(IPAddress)) 
+                Assert.True(Equals(expected,result), $"{result} != {expected}");
+
+            if (typeof(T) == typeof(byte[]))
+                Assert.True(((byte[])(object)expected).SequenceEqual((byte[])(object)result), $"{result} != {expected}");
 
 			Assert.Equal(expected, result);
 		}
@@ -44,7 +49,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 6,
-                        ValueEncoding = Encoding.UTF8,
+                        ValueEncoding = ModbusEncoding.UTF8,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -60,7 +65,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 5,
-                        ValueEncoding = Encoding.UTF8,
+                        ValueEncoding = ModbusEncoding.UTF8,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -75,7 +80,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 7,
-                        ValueEncoding = Encoding.UTF8,
+                        ValueEncoding = ModbusEncoding.UTF8,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -90,7 +95,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 8,
-                        ValueEncoding = Encoding.UTF8,
+                        ValueEncoding = ModbusEncoding.UTF8,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -105,7 +110,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 12,
-                        ValueEncoding = Encoding.UTF16,
+                        ValueEncoding = ModbusEncoding.UTF16,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -120,7 +125,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 11,
-                        ValueEncoding = Encoding.UTF16,
+                        ValueEncoding = ModbusEncoding.UTF16,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -135,7 +140,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 13,
-                        ValueEncoding = Encoding.UTF16,
+                        ValueEncoding = ModbusEncoding.UTF16,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -150,7 +155,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 2,
-                        ValueEncoding = Encoding.IEEE754,
+                        ValueEncoding = ModbusEncoding.IEEE754,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -165,7 +170,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 2,
-                        ValueEncoding = Encoding.IEEE754,
+                        ValueEncoding = ModbusEncoding.IEEE754,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -180,7 +185,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 2,
-                        ValueEncoding = Encoding.IEEE754,
+                        ValueEncoding = ModbusEncoding.IEEE754,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -195,7 +200,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 4,
-                        ValueEncoding = Encoding.IEEE754,
+                        ValueEncoding = ModbusEncoding.IEEE754,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -210,7 +215,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 4,
-                        ValueEncoding = Encoding.IEEE754,
+                        ValueEncoding = ModbusEncoding.IEEE754,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -225,7 +230,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 4,
-                        ValueEncoding = Encoding.IEEE754,
+                        ValueEncoding = ModbusEncoding.IEEE754,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -240,7 +245,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 2,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -255,7 +260,7 @@ namespace ModbusParserGen.Tests
 					new RoundTripParameters()
 					{
 						TargetLength = 1,
-						ValueEncoding = Encoding.Int,
+						ValueEncoding = ModbusEncoding.Int,
 						ScaleFactor = null,
 						EndianFunction = param.EndianFunction,
 						Signed = param.Signed,
@@ -270,7 +275,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 1,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = param.Signed,
@@ -285,7 +290,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 1,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -300,7 +305,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 1,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = false,
@@ -315,7 +320,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 1,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -330,7 +335,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 1,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = false,
@@ -345,7 +350,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 1,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -360,7 +365,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 4,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = false,
@@ -375,7 +380,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 8,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = false,
@@ -390,7 +395,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 8,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -405,7 +410,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 8,
-                        ValueEncoding = Encoding.Int,
+                        ValueEncoding = ModbusEncoding.Int,
                         ScaleFactor = null,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -419,7 +424,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 4,
-                        ValueEncoding = Encoding.IntAndScaleFactor,
+                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
                         ScaleFactor = 0.01,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -434,7 +439,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 4,
-                        ValueEncoding = Encoding.IntAndScaleFactor,
+                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
                         ScaleFactor = 0.01,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -449,7 +454,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 2,
-                        ValueEncoding = Encoding.IntAndScaleFactor,
+                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
                         ScaleFactor = 0.01,
                         EndianFunction = param.EndianFunction,
                         Signed = false,
@@ -464,7 +469,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 1,
-                        ValueEncoding = Encoding.IntAndScaleFactor,
+                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
                         ScaleFactor = 0.01,
                         EndianFunction = param.EndianFunction,
                         Signed = false,
@@ -479,7 +484,7 @@ namespace ModbusParserGen.Tests
                     new RoundTripParameters()
                     {
                         TargetLength = 2,
-                        ValueEncoding = Encoding.IntAndScaleFactor,
+                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
                         ScaleFactor = 0.01,
                         EndianFunction = param.EndianFunction,
                         Signed = true,
@@ -487,8 +492,54 @@ namespace ModbusParserGen.Tests
                     },
                     (double)-5000,
                     (double)-5000
-                ];
-        }
+                ]; 
+            foreach (var param in RoundTripParameterVariations)
+	            yield return
+	            [ // Encoding IPAddress ipv4 value
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 2,
+			            ValueEncoding = ModbusEncoding.IPAddress,
+			            ScaleFactor = null,
+			            EndianFunction = param.EndianFunction,
+			            Signed = param.Signed,
+			            WordSwap = param.WordSwap
+		            },
+		            IPAddress.Parse("10.0.0.228"),
+					IPAddress.Parse("10.0.0.228")
+				];
+            foreach (var param in RoundTripParameterVariations)
+	            yield return
+	            [ // Encoding IPAddress ipv6 value
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 8,
+			            ValueEncoding = ModbusEncoding.IPAddress,
+			            ScaleFactor = null,
+			            EndianFunction = param.EndianFunction,
+			            Signed = param.Signed,
+			            WordSwap = param.WordSwap
+		            },
+		            IPAddress.Parse("2001:db8:abcd:1234:4c3a:21ff:fe56:abcd"),
+		            IPAddress.Parse("2001:db8:abcd:1234:4c3a:21ff:fe56:abcd")
+	            ];
+
+            foreach (var param in RoundTripParameterVariations)
+	            yield return
+	            [ // Encoding Raw bytes
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 9,
+			            ValueEncoding = ModbusEncoding.RawBytes,
+			            ScaleFactor = null,
+			            EndianFunction = param.EndianFunction,
+			            Signed = param.Signed,
+			            WordSwap = param.WordSwap
+		            },
+		            new byte[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17},
+					new byte[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
+				];
+		}
 
 		IEnumerator IEnumerable.GetEnumerator()
 		{
@@ -513,7 +564,7 @@ namespace ModbusParserGen.Tests
 		public bool WordSwap;
 		public Func<byte[], byte[]> EndianFunction= Endian.BigEndian;
 		public int TargetLength;
-		public Encoding ValueEncoding;
+		public ModbusEncoding ValueEncoding;
 		public bool Signed;
 		public double? ScaleFactor;
 	}

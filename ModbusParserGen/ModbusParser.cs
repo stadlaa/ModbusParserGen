@@ -1,4 +1,6 @@
-﻿using ModbusParserGen.Functions;
+﻿using System.Diagnostics;
+using System.Net;
+using ModbusParserGen.Functions;
 using System.Runtime.InteropServices;
 
 namespace ModbusParserGen;
@@ -147,6 +149,30 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					return (T)value;
 				break;
 			}
+			case ModbusEncoding.IPAddress:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
+
+				if (typeof(T) == typeof(IPAddress))
+					return bytes.Length switch
+					{
+						4 or 16 => (T)(object) new IPAddress(Endian.BigEndian(bytes)),
+						_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {modbusEncoding} encoding.")
+					};
+
+				break;
+			}
+			case ModbusEncoding.RawBytes:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
+
+				if (typeof(T) == typeof(byte[]))
+					return (T)(object)Endian.BigEndian(bytes);
+
+				break;
+			}
 			default:
 				throw new NotSupportedException($"Encoding {modbusEncoding} is not supported.");
 		}
@@ -287,11 +313,37 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
                 }
 	            break;
             }
-            default:
-				throw new NotSupportedException($"Encoding {modbusEncoding} is not supported.");
-        }
+			case ModbusEncoding.IPAddress:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
-		//Convert from source endian.
+				if (!(typeof(T) == typeof(IPAddress)))
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
+
+				var ipBytes= Endian.BigEndian(((IPAddress)(object)value).GetAddressBytes());
+				
+				bytes = ipBytes.Length == bytes.Length ? ipBytes : throw new ArgumentOutOfRangeException($"Length of {targetLength} words is not compatible with length of specified ip-address: {ipBytes.Length} bytes.");
+				break;
+			}
+			case ModbusEncoding.RawBytes:
+			{
+				if (scaleFactor != null)
+					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
+
+				if (!(typeof(T) == typeof(byte[])))
+					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
+
+				byte[] rawBytes = Endian.BigEndian((byte[])(object)value);
+
+				bytes = rawBytes.Length == bytes.Length ? rawBytes : throw new ArgumentOutOfRangeException($"Length of {targetLength} words is not compatible with length of specified byte array: {rawBytes.Length} bytes.");
+				break;
+			}
+			default:
+				throw new NotSupportedException($"Encoding {modbusEncoding} is not supported.");
+		}
+
+		//Convert to source endian.
 		bytes = endian(bytes);
 
 		//Copy to register array

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "o9cedlvnX3Q=",
+  "dgSpecHash": "h+7WplUcqYs=",
   "success": true,
-  "projectFilePath": "C:\\Users\\bioba\\source\\repos\\ModbusParserGen\\ModbusParserGen\\ModbusParserGen.csproj",
+  "projectFilePath": "C:\\Users\\bioba\\source\\repos\\SharpSunSpec\\src\\submodules\\ModbusParserGen\\ModbusParserGen\\ModbusParserGen.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\bioba\\.nuget\\packages\\nmodbus\\3.0.81\\nmodbus.3.0.81.nupkg.sha512"
   ],

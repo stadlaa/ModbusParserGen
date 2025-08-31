@@ -16,5 +16,11 @@ public enum ModbusEncoding
 	UTF8,
 
 	// ReSharper disable once InconsistentNaming
-	UTF16
+	UTF16,
+
+	// ReSharper disable once InconsistentNaming
+	IPAddress,
+
+	// ReSharper disable once InconsistentNaming
+	RawBytes
 }
