@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Net;
-using ModbusParserGen.Functions;
+﻿using System.Net;
 using System.Runtime.InteropServices;
 
 namespace ModbusParserGen;
@@ -12,6 +10,17 @@ namespace ModbusParserGen;
 /// <param name="endian">Specify the endian of the incoming (word-swapped) data by injecting a function from <see cref="Endian"/>. The endian will be reversed if it differs from the target endian.</param>
 public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 {
+    /// <summary>
+    ///		Apply word swap on incoming data before endian conversion.
+    /// </summary>
+    public bool WordSwap { get; } = wordSwap;
+
+
+    /// <summary>
+    ///		Specify the endian of the incoming (word-swapped) data by injecting a function from <see cref="Endian"/>. The endian will be reversed if it differs from the target endian.
+    /// </summary>
+    public Func<byte[], byte[]> Endian { get; } = endian;
+
 	/// <summary>
 	///     Deserializes a modbus register array into the specified type <typeparamref name="T" /> using the specified
 	///     encoding.
@@ -23,17 +32,17 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 	/// <param name="scaleFactor">Scale factor to be applied.</param>
 	/// <returns>Decoded value.</returns>
 	/// <exception cref="NotSupportedException">An input param combination or the output type is not supported.</exception>
-	public T Deserialize<T>(ushort[] registers, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null) where T : notnull
+	public T Deserialize<T>(ushort[] registers, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null)
 	{
 		// Apply word swap
-		if (wordSwap)
+		if (WordSwap)
 			Array.Reverse(registers);
 
 		//Copy to byte array
 		var bytes = MemoryMarshal.Cast<ushort, byte>(registers).ToArray();
 
 		//Convert from source endian.
-		bytes = endian(bytes);
+		bytes = Endian(bytes);
 
 		// Decode based on modbusEncoding and convert to the requested target type, if it is supported for the given modbusEncoding.
 		// If the target type is not specified for the given modbusEncoding, a NotSupportedException is thrown after the switch statement.
@@ -157,7 +166,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				if (typeof(T) == typeof(IPAddress))
 					return bytes.Length switch
 					{
-						4 or 16 => (T)(object) new IPAddress(Endian.BigEndian(bytes)),
+						4 or 16 => (T)(object) new IPAddress(Functions.Endian.BigEndian(bytes)),
 						_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {modbusEncoding} encoding.")
 					};
 
@@ -169,7 +178,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (typeof(T) == typeof(byte[]))
-					return (T)(object)Endian.BigEndian(bytes);
+					return (T)(object)Functions.Endian.BigEndian(bytes);
 
 				break;
 			}
@@ -192,8 +201,11 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
     /// <param name="scaleFactor">Scale factor to be applied.</param>
     /// <returns>Serialized registers.</returns>
     /// <exception cref="NotSupportedException">An input param combination is not supported.</exception>
-    public ushort[] Serialize<T>(T value, int targetLength, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null) where T : notnull
+    public ushort[] Serialize<T>(T value, int targetLength, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null)
 	{
+		if (value == null)
+			throw new ArgumentNullException(nameof(value));
+		
 		byte[] bytes = new byte[targetLength*2];
 
 		// Encode based on modbusEncoding, to register targetLength if it is supported for the given modbusEncoding.
@@ -321,7 +333,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				if (!(typeof(T) == typeof(IPAddress)))
 					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
-				var ipBytes= Endian.BigEndian(((IPAddress)(object)value).GetAddressBytes());
+				var ipBytes= Functions.Endian.BigEndian(((IPAddress)(object)value).GetAddressBytes());
 				
 				bytes = ipBytes.Length == bytes.Length ? ipBytes : throw new ArgumentOutOfRangeException($"Length of {targetLength} words is not compatible with length of specified ip-address: {ipBytes.Length} bytes.");
 				break;
@@ -334,7 +346,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				if (!(typeof(T) == typeof(byte[])))
 					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
-				byte[] rawBytes = Endian.BigEndian((byte[])(object)value);
+				byte[] rawBytes = Functions.Endian.BigEndian((byte[])(object)value);
 
 				bytes = rawBytes.Length == bytes.Length ? rawBytes : throw new ArgumentOutOfRangeException($"Length of {targetLength} words is not compatible with length of specified byte array: {rawBytes.Length} bytes.");
 				break;
@@ -344,13 +356,13 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 		}
 
 		//Convert to source endian.
-		bytes = endian(bytes);
+		bytes = Endian(bytes);
 
 		//Copy to register array
 		var registers = MemoryMarshal.Cast<byte, ushort>(bytes).ToArray();
 
 		// Apply word swap
-		if (wordSwap)
+		if (WordSwap)
 			Array.Reverse(registers);
 
 		return registers;
