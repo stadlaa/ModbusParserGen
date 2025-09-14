@@ -19,16 +19,16 @@ namespace ModbusParserGen.Tests
                 if (Double.IsInfinity((double)(object)value))
                     Assert.True(Double.IsInfinity((double)(object)result), $"{result} != {expected}");
                 else
-                    Assert.True(Math.Abs((double)(object)result-(double)(object)expected) < 0.00001,$"{result} != {expected}");
+                    Assert.Equal((double)(object)expected,(double)(object)result,5);
 			
 
 			if (typeof(T) == typeof(float))
                 if(Single.IsInfinity((float)(object)value))
                     Assert.True(Single.IsInfinity((float)(object)result), $"{result} != {expected}");
-                else
-                    Assert.True(Math.Abs((float)(object)result - (float)(object)expected) < 0.00001, $"{result} != {expected}");
-			
-            if(typeof(T)==typeof(IPAddress)) 
+				else
+					Assert.Equal((float)(object)expected, (float)(object)result, 5);
+
+			if (typeof(T)==typeof(IPAddress)) 
                 Assert.True(Equals(expected,result), $"{result} != {expected}");
 
             if (typeof(T) == typeof(byte[]))
