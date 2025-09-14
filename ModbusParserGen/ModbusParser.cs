@@ -32,6 +32,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 	/// <param name="scaleFactor">Scale factor to be applied.</param>
 	/// <returns>Decoded value.</returns>
 	/// <exception cref="NotSupportedException">An input param combination or the output type is not supported.</exception>
+	/// <exception cref="ArgumentNullException"></exception>
 	public T Deserialize<T>(ushort[] registers, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null)
 	{
 		// Apply word swap
@@ -178,7 +179,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (typeof(T) == typeof(byte[]))
-					return (T)(object)Functions.Endian.BigEndian(bytes);
+					return (T)(object)bytes;
 
 				break;
 			}
@@ -346,7 +347,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				if (!(typeof(T) == typeof(byte[])))
 					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
-				byte[] rawBytes = Functions.Endian.BigEndian((byte[])(object)value);
+				byte[] rawBytes = (byte[])(object)value;
 
 				bytes = rawBytes.Length == bytes.Length ? rawBytes : throw new ArgumentOutOfRangeException($"Length of {targetLength} words is not compatible with length of specified byte array: {rawBytes.Length} bytes.");
 				break;
