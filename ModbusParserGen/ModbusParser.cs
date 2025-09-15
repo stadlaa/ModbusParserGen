@@ -33,7 +33,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 	/// <returns>Decoded value.</returns>
 	/// <exception cref="NotSupportedException">An input param combination or the output type is not supported.</exception>
 	/// <exception cref="ArgumentNullException"></exception>
-	public T Deserialize<T>(ushort[] registers, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null)
+	public T Deserialize<T>(ushort[] registers, ModbusEncoding modbusEncoding, bool signed, decimal? scaleFactor = null)
 	{
 		// Apply word swap
 		if (WordSwap)
@@ -88,30 +88,20 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 
 				object value = bytes.Length switch
 				{
-					2 when signed => MemoryMarshal.Read<short>(bytes) * (double)scaleFactor,
-					2 when !signed => MemoryMarshal.Read<ushort>(bytes) * (double)scaleFactor,
-					4 when signed => MemoryMarshal.Read<int>(bytes) * (double)scaleFactor,
-					4 when !signed => MemoryMarshal.Read<uint>(bytes) * (double)scaleFactor,
-					8 when signed => MemoryMarshal.Read<long>(bytes) * (double)scaleFactor,
-					8 when !signed => MemoryMarshal.Read<ulong>(bytes) * (double)scaleFactor,
+					2 when signed => MemoryMarshal.Read<short>(bytes),
+					2 when !signed => MemoryMarshal.Read<ushort>(bytes),
+					4 when signed => MemoryMarshal.Read<int>(bytes),
+					4 when !signed => MemoryMarshal.Read<uint>(bytes),
+					8 when signed => MemoryMarshal.Read<long>(bytes),
+					8 when !signed => MemoryMarshal.Read<ulong>(bytes),
 					_ => throw new NotSupportedException($"Length of {registers.Length} words is not supported for {modbusEncoding} encoding.")
 				};
+				if (typeof(T) == typeof(decimal))
+					return (T)(object)Convert.ToDecimal(Convert.ToDecimal(value) * (decimal)scaleFactor);
 				if (typeof(T) == typeof(double))
-					return (T)(object)Convert.ToDouble(value);
+					return (T)(object)Convert.ToDouble(Convert.ToDouble(value) * (double)scaleFactor);
 				if (typeof(T) == typeof(float))
-					return (T)(object)Convert.ToSingle(value);
-				if (typeof(T) == typeof(short))
-					return (T)(object)Convert.ToInt16(Math.Round((double)value, 0));
-				if (typeof(T) == typeof(ushort))
-					return (T)(object)Convert.ToUInt16(Math.Round((double)value, 0));
-				if (typeof(T) == typeof(int))
-					return (T)(object)Convert.ToInt32(Math.Round((double)value, 0));
-				if (typeof(T) == typeof(uint))
-					return (T)(object)Convert.ToUInt32(Math.Round((double)value, 0));
-				if (typeof(T) == typeof(long))
-					return (T)(object)Convert.ToInt64(Math.Round((double)value, 0));
-				if (typeof(T) == typeof(ulong))
-					return (T)(object)Convert.ToUInt64(Math.Round((double)value, 0));
+					return (T)(object)Convert.ToSingle(Convert.ToSingle(value) * (float)scaleFactor);
 				break;
 			}
 			case ModbusEncoding.Int:
@@ -139,6 +129,8 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					return (T)(object)Convert.ToSByte(value);
 				if (typeof(T) == typeof(double))
 					return (T)(object)Convert.ToDouble(value);
+				if (typeof(T) == typeof(decimal))
+					return (T)(object)Convert.ToDecimal(value);
 				if (typeof(T) == typeof(float))
 					return (T)(object)Convert.ToSingle(value);
 				if (typeof(T) == typeof(short))
@@ -202,7 +194,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
     /// <param name="scaleFactor">Scale factor to be applied.</param>
     /// <returns>Serialized registers.</returns>
     /// <exception cref="NotSupportedException">An input param combination is not supported.</exception>
-    public ushort[] Serialize<T>(T value, int targetLength, ModbusEncoding modbusEncoding, bool signed, double? scaleFactor = null)
+    public ushort[] Serialize<T>(T value, int targetLength, ModbusEncoding modbusEncoding, bool signed, decimal? scaleFactor = null)
 	{
 		if (value == null)
 			throw new ArgumentNullException(nameof(value));
@@ -259,32 +251,87 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				if (scaleFactor is null)
 					throw new ArgumentNullException($"No scale factor provided for encoding {modbusEncoding}");
 
-				if (!(typeof(T) == typeof(double) || typeof(T) == typeof(float) || typeof(T) == typeof(short) | typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(long) || typeof(T) == typeof(ulong)))
+				if(!(typeof(T) == typeof(float) || typeof(T) == typeof(double) || typeof(T) == typeof(decimal)))
 					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
 				switch (bytes.Length)
 				{
 					case 2 when signed:
-						MemoryMarshal.Write(bytes, Convert.ToInt16(Math.Round(Convert.ToDouble(value)/ (double)scaleFactor, 0)));
-                        break;
-					case 2 when !signed: 
-                        MemoryMarshal.Write(bytes, Convert.ToUInt16(Math.Round(Convert.ToDouble(value) / (double)scaleFactor, 0)));
-                        break;
-					case 4 when signed : 
-							MemoryMarshal.Write(bytes,Convert.ToInt32(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+					{
+						var result = typeof(T) switch
+						{
+							{ } t when t == typeof(float) => Convert.ToInt16(Convert.ToSingle(value) / (float)scaleFactor),
+							{ } t when t == typeof(double) => Convert.ToInt16(Convert.ToDouble(value)/(double) scaleFactor),
+							{ } t when t == typeof(decimal) => Convert.ToInt16(Convert.ToDecimal(value) / (decimal)scaleFactor),
+							_ => throw new InvalidOperationException($"Programmer error: Type {typeof(T)} is not supported for encoding {modbusEncoding}.")
+						};
+						MemoryMarshal.Write(bytes, result);
 						break;
-					case 4 when !signed: 
-							MemoryMarshal.Write(bytes,Convert.ToUInt32(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+					}
+					case 2 when !signed:
+					{
+						var result = typeof(T) switch
+						{
+							{ } t when t == typeof(float) => Convert.ToUInt16(Convert.ToSingle(value) / (float)scaleFactor),
+							{ } t when t == typeof(double) => Convert.ToUInt16(Convert.ToDouble(value) / (double)scaleFactor),
+							{ } t when t == typeof(decimal) => Convert.ToUInt16(Convert.ToDecimal(value) / (decimal)scaleFactor),
+							_ => throw new InvalidOperationException($"Programmer error: Type {typeof(T)} is not supported for encoding {modbusEncoding}.")
+						};
+						MemoryMarshal.Write(bytes, result);
 						break;
-					case 8 when signed : 
-							MemoryMarshal.Write(bytes,Convert.ToInt64(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+					}
+					case 4 when signed :
+					{
+						var result = typeof(T) switch
+						{
+							{ } t when t == typeof(float) => Convert.ToInt32(Convert.ToSingle(value) / (float)scaleFactor),
+							{ } t when t == typeof(double) => Convert.ToInt32(Convert.ToDouble(value) / (double)scaleFactor),
+							{ } t when t == typeof(decimal) => Convert.ToInt32(Convert.ToDecimal(value) / (decimal)scaleFactor),
+							_ => throw new InvalidOperationException($"Programmer error: Type {typeof(T)} is not supported for encoding {modbusEncoding}.")
+						};
+						MemoryMarshal.Write(bytes, result);
 						break;
-					case 8 when !signed : 
-							MemoryMarshal.Write(bytes,Convert.ToUInt64(Math.Round(Convert.ToDouble(value) / (double)scaleFactor,0)));
+					}
+					case 4 when !signed:
+					{
+						var result = typeof(T) switch
+						{
+							{ } t when t == typeof(float) => Convert.ToUInt32(Convert.ToSingle(value) / (float)scaleFactor),
+							{ } t when t == typeof(double) => Convert.ToUInt32(Convert.ToDouble(value) / (double)scaleFactor),
+							{ } t when t == typeof(decimal) => Convert.ToUInt32(Convert.ToDecimal(value) / (decimal)scaleFactor),
+							_ => throw new InvalidOperationException($"Programmer error: Type {typeof(T)} is not supported for encoding {modbusEncoding}.")
+						};
+						MemoryMarshal.Write(bytes, result);
 						break;
-                    default:
-                        throw new NotSupportedException($"Length of {targetLength} words is not supported for encoding {modbusEncoding}.");
+					}
+					case 8 when signed :
+					{
+						var result = typeof(T) switch
+						{
+							{ } t when t == typeof(float) => Convert.ToInt64(Convert.ToSingle(value) / (float)scaleFactor),
+							{ } t when t == typeof(double) => Convert.ToInt64(Convert.ToDouble(value) / (double)scaleFactor),
+							{ } t when t == typeof(decimal) => Convert.ToInt64(Convert.ToDecimal(value) / (decimal)scaleFactor),
+							_ => throw new InvalidOperationException($"Programmer error: Type {typeof(T)} is not supported for encoding {modbusEncoding}.")
+						};
+						MemoryMarshal.Write(bytes, result);
+						break;
+					}
+					case 8 when !signed:
+					{
+						var result = typeof(T) switch
+						{
+							{ } t when t == typeof(float) => Convert.ToUInt64(Convert.ToSingle(value) / (float)scaleFactor),
+							{ } t when t == typeof(double) => Convert.ToUInt64(Convert.ToDouble(value) / (double)scaleFactor),
+							{ } t when t == typeof(decimal) => Convert.ToUInt64(Convert.ToDecimal(value) / (decimal)scaleFactor),
+							_ => throw new InvalidOperationException($"Programmer error: Type {typeof(T)} is not supported for encoding {modbusEncoding}.")
+						};
+						MemoryMarshal.Write(bytes, result);
+						break;
+					}
+	                default:
+	                    throw new NotSupportedException($"Length of {targetLength} words is not supported for encoding {modbusEncoding}.");
 				}
+
 				break;
             }
             case ModbusEncoding.Int:
@@ -292,7 +339,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
                 if (scaleFactor != null)
                     throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
-                if (!(typeof(T) == typeof(bool) || typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte) || typeof(T) == typeof(double) || typeof(T) == typeof(float) || typeof(T) == typeof(short) | typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(long) || typeof(T) == typeof(ulong) || typeof(T) == typeof(Int128) || typeof(T) == typeof(UInt128)))
+                if (!(typeof(T) == typeof(bool) || typeof(T) == typeof(byte) || typeof(T) == typeof(sbyte) || typeof(T) == typeof(decimal) || typeof(T) == typeof(double) || typeof(T) == typeof(float) || typeof(T) == typeof(short) | typeof(T) == typeof(ushort) || typeof(T) == typeof(int) || typeof(T) == typeof(uint) || typeof(T) == typeof(long) || typeof(T) == typeof(ulong) || typeof(T) == typeof(Int128) || typeof(T) == typeof(UInt128)))
 	                throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
 				switch (bytes.Length)
