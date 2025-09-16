@@ -15,6 +15,10 @@ namespace ModbusParserGen.Tests
 			var registers = parser.Serialize(value, param.TargetLength, param.ValueEncoding, param.Signed, param.ScaleFactor);
 			var result = parser.Deserialize<T>(registers, param.ValueEncoding, param.Signed, param.ScaleFactor);
 
+
+			if (typeof(T) == typeof(decimal))
+					Assert.Equal((decimal)(object)expected, (decimal)(object)result, 5);
+
 			if (typeof(T) == typeof(double))
                 if (Double.IsInfinity((double)(object)value))
                     Assert.True(Double.IsInfinity((double)(object)result), $"{result} != {expected}");
@@ -418,81 +422,97 @@ namespace ModbusParserGen.Tests
                     },
                     Int128.MinValue,
                     Int128.MinValue
-                ]; foreach (var param in RoundTripParameterVariations)
-                yield return
-                [ // Encoding IntAndScaleFactor double
-                    new RoundTripParameters()
-                    {
-                        TargetLength = 4,
-                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
-                        ScaleFactor = 0.01,
-                        EndianFunction = param.EndianFunction,
-                        Signed = true,
-                        WordSwap = param.WordSwap
-                    },
-                    5.88,
-                    5.88
                 ];
             foreach (var param in RoundTripParameterVariations)
-                yield return
-                [ // Encoding IntAndScaleFactor double
-                    new RoundTripParameters()
-                    {
-                        TargetLength = 4,
-                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
-                        ScaleFactor = 0.01,
-                        EndianFunction = param.EndianFunction,
-                        Signed = true,
-                        WordSwap = param.WordSwap
-                    },
-                    -5.88,
-                    -5.88
-                ];
+	            yield return
+	            [ // Encoding IntAndScaleFactor double highest possible value, lowest scale factor
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 4,
+			            ValueEncoding = ModbusEncoding.IntAndScaleFactor,
+			            ScaleFactor = 0.0001m,
+			            EndianFunction = param.EndianFunction,
+			            Signed = false,
+			            WordSwap = param.WordSwap
+		            },
+		            (double)uint.MaxValue,
+		            (double)uint.MaxValue
+				];
             foreach (var param in RoundTripParameterVariations)
-                yield return
-                [ // Encoding IntAndScaleFactor ushort high value
-                    new RoundTripParameters()
-                    {
-                        TargetLength = 2,
-                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
-                        ScaleFactor = 0.01,
-                        EndianFunction = param.EndianFunction,
-                        Signed = false,
-                        WordSwap = param.WordSwap
-                    },
-                    UInt16.MaxValue,
-                    UInt16.MaxValue
-                ];
+	            yield return
+				[ // Encoding IntAndScaleFactor double some values
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 4,
+			            ValueEncoding = ModbusEncoding.IntAndScaleFactor,
+			            ScaleFactor = 1,
+			            EndianFunction = param.EndianFunction,
+			            Signed = false,
+			            WordSwap = param.WordSwap
+		            },
+		            (double)4503599627370495,
+		            (double)4503599627370495
+				];
+			foreach (var param in RoundTripParameterVariations)
+	            yield return
+	            [ // Encoding IntAndScaleFactor decimal some values
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 4,
+			            ValueEncoding = ModbusEncoding.IntAndScaleFactor,
+			            ScaleFactor = 0.000000001m,
+			            EndianFunction = param.EndianFunction,
+			            Signed = false,
+			            WordSwap = param.WordSwap
+		            },
+		            (decimal)uint.MaxValue,
+		            (decimal)uint.MaxValue
+				];
+			foreach (var param in RoundTripParameterVariations)
+				yield return
+				[ // Encoding IntAndScaleFactor decimal some values
+					new RoundTripParameters()
+					{
+						TargetLength = 4,
+						ValueEncoding = ModbusEncoding.IntAndScaleFactor,
+						ScaleFactor = 1,
+						EndianFunction = param.EndianFunction,
+						Signed = false,
+						WordSwap = param.WordSwap
+					},
+					(decimal)uint.MaxValue,
+					(decimal)uint.MaxValue
+				];
+			foreach (var param in RoundTripParameterVariations)
+				yield return
+	            [ // Encoding IntAndScaleFactor decimal some values
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 4,
+			            ValueEncoding = ModbusEncoding.IntAndScaleFactor,
+			            ScaleFactor = 0.01m,
+			            EndianFunction = param.EndianFunction,
+			            Signed = true,
+			            WordSwap = param.WordSwap
+		            },
+		            (float)Math.Pow(2,52),
+		            (float)Math.Pow(2,52)
+				];
             foreach (var param in RoundTripParameterVariations)
-                yield return
-                [ // Encoding IntAndScaleFactor ushort small value only one register
-                    new RoundTripParameters()
-                    {
-                        TargetLength = 1,
-                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
-                        ScaleFactor = 0.01,
-                        EndianFunction = param.EndianFunction,
-                        Signed = false,
-                        WordSwap = param.WordSwap
-                    },
-                    (ushort)50,
-                    (ushort)50
-                ];
-            foreach (var param in RoundTripParameterVariations)
-                yield return
-                [ // Encoding IntAndScaleFactor short negative value
-                    new RoundTripParameters()
-                    {
-                        TargetLength = 2,
-                        ValueEncoding = ModbusEncoding.IntAndScaleFactor,
-                        ScaleFactor = 0.01,
-                        EndianFunction = param.EndianFunction,
-                        Signed = true,
-                        WordSwap = param.WordSwap
-                    },
-                    (double)-5000,
-                    (double)-5000
-                ]; 
+	            yield return
+	            [ // Encoding IntAndScaleFactor decimal some values
+		            new RoundTripParameters()
+		            {
+			            TargetLength = 4,
+			            ValueEncoding = ModbusEncoding.IntAndScaleFactor,
+			            ScaleFactor = 0.01m,
+			            EndianFunction = param.EndianFunction,
+			            Signed = true,
+			            WordSwap = param.WordSwap
+		            },
+		            (float)-Math.Pow(2,52),
+		            (float)-Math.Pow(2,52)
+	            ];
             foreach (var param in RoundTripParameterVariations)
 	            yield return
 	            [ // Encoding IPAddress ipv4 value
@@ -566,6 +586,6 @@ namespace ModbusParserGen.Tests
 		public int TargetLength;
 		public ModbusEncoding ValueEncoding;
 		public bool Signed;
-		public double? ScaleFactor;
+		public decimal? ScaleFactor;
 	}
 }
