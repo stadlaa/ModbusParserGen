@@ -47,7 +47,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (typeof(T) == typeof(string))
-					return (T)(object)System.Text.Encoding.UTF8.GetString(bytes).TrimEnd('\0');
+					return (T)(object)System.Text.Encoding.UTF8.GetString(Functions.Endian.BigEndian(bytes)).TrimEnd('\0');
 				break;
 			}
 			case ModbusEncoding.UTF16:
@@ -56,7 +56,7 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 					throw new NotSupportedException($"No scale factor supported for encoding {modbusEncoding}");
 
 				if (typeof(T) == typeof(string))
-					return (T)(object)System.Text.Encoding.Unicode.GetString(bytes).TrimEnd('\0');
+					return (T)(object)System.Text.Encoding.Unicode.GetString(Functions.Endian.BigEndian(bytes)).TrimEnd('\0');
 				break;
 			}
 			case ModbusEncoding.IEEE754:
@@ -204,8 +204,9 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				if (!(typeof(T) == typeof(string)))
 					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
-				byte[] strBytes = System.Text.Encoding.UTF8.GetBytes((string)(object)value);
-				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes);
+				byte[] strBytes = System.Text.Encoding.UTF8.GetBytes((string)(object)value); //Gets string big endian.
+				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes); // Trim or expand to target length.
+				bytes = Functions.Endian.BigEndian(bytes); // To host endian.
 				break;
 			}
 			case ModbusEncoding.UTF16:
@@ -216,9 +217,10 @@ public class ModbusParser(bool wordSwap, Func<byte[], byte[]> endian)
 				if (!(typeof(T) == typeof(string)))
 					throw new NotSupportedException($"Type {typeof(T)} is not supported for encoding {modbusEncoding}.");
 
-				byte[] strBytes = System.Text.Encoding.Unicode.GetBytes((string)(object)value);
-				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes);
-				break;
+				byte[] strBytes = System.Text.Encoding.Unicode.GetBytes((string)(object)value); //Gets string big endian.
+				strBytes.AsSpan(0, Math.Min(bytes.Length, strBytes.Length)).CopyTo(bytes); // Trim or expand to target length.
+				bytes = Functions.Endian.BigEndian(bytes); // To host endian.
+					break;
 			}
 			case ModbusEncoding.IEEE754:
 			{
